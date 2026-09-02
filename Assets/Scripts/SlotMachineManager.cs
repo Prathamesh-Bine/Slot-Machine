@@ -23,12 +23,16 @@ public class SlotMachineManager : MonoBehaviour
     [Header("Popup References")]
     public GameObject jackpotPopup; 
     public TextMeshProUGUI popupText; 
+    
+    [Header("Visual Effects")]
+    public ParticleSystem moneyRainParticles; 
 
     [Header("Audio Settings")]
     public AudioSource spinAudioSource; 
     public AudioSource uiAudioSource; 
     public AudioClip clickSound;      
-    public AudioClip cashoutSound;    // <-- NEW: Link your unique cashout sound here
+    public AudioClip cashoutSound;    
+    public AudioClip jackpotSound; 
 
     [Header("Game State")]
     public int balance = 50;
@@ -80,9 +84,14 @@ public class SlotMachineManager : MonoBehaviour
 
     public void Spin()
     {
-        if (isSpinning || balance < currentBet)
+        if (isSpinning) return;
+
+        // <-- NEW: Check balance and show popup if insufficient -->
+        if (balance < currentBet)
         {
-            Debug.Log("Not enough balance or already spinning!");
+            Debug.Log("Not enough balance!");
+            PlayClickSound(); // Play a standard click as feedback
+            StartCoroutine(ShowWarningRoutine("INSUFFICIENT\nBALANCE!"));
             return;
         }
 
@@ -187,6 +196,22 @@ public class SlotMachineManager : MonoBehaviour
         }
     }
 
+    // <-- NEW: A dedicated routine to show warnings without triggering particles or sounds -->
+    private IEnumerator ShowWarningRoutine(string message)
+    {
+        if (jackpotPopup != null)
+        {
+            if (popupText != null)
+            {
+                popupText.text = message;
+            }
+
+            jackpotPopup.SetActive(true);
+            yield return new WaitForSeconds(2.0f); // Display the warning for 2 seconds
+            jackpotPopup.SetActive(false);
+        }
+    }
+
     private IEnumerator ShowJackpotRoutine(int amount)
     {
         if (jackpotPopup != null)
@@ -196,9 +221,18 @@ public class SlotMachineManager : MonoBehaviour
                 popupText.text = $"YOU WON {amount}G!";
             }
 
+            if (moneyRainParticles != null) moneyRainParticles.Play(); 
+            
+            if (uiAudioSource != null && jackpotSound != null)
+            {
+                uiAudioSource.PlayOneShot(jackpotSound);
+            }
+
             jackpotPopup.SetActive(true);
-            yield return new WaitForSeconds(2.0f);
+            yield return new WaitForSeconds(3.0f);
             jackpotPopup.SetActive(false);
+            
+            if (moneyRainParticles != null) moneyRainParticles.Stop();
         }
     }
 
@@ -206,7 +240,6 @@ public class SlotMachineManager : MonoBehaviour
     {
         if (isSpinning) return; 
 
-        // <-- NEW: Play the unique cashout sound instead of the regular click
         if (uiAudioSource != null && cashoutSound != null)
         {
             uiAudioSource.PlayOneShot(cashoutSound);
