@@ -81,6 +81,32 @@ public class SlotMachineManager : MonoBehaviour
         // Start the game loop
         StartCoroutine(SpinRoutine());
     }
+    // Hook this up to your new Checkout button
+    public void Checkout()
+    {
+        // Don't let them cash out while the reels are actively spinning
+        if (isSpinning) return; 
+
+        Debug.Log($"Player cashed out with {balance}G!");
+
+        // Reuse your existing popup window to show the final cash-out amount
+        if (jackpotPopup != null && popupText != null)
+        {
+            popupText.text = $"CASHED OUT:\n{balance}G!";
+            jackpotPopup.SetActive(true);
+        }
+
+        // Zero out the balance and update the text to show the game is over
+        balance = 0;
+        UpdateUI();
+
+        // Lock all betting buttons so they can't play anymore
+        foreach (Button btn in betButtons)
+        {
+            if (btn != null) btn.interactable = false;
+        }
+    }
+
 
     private IEnumerator SpinRoutine()
     {
