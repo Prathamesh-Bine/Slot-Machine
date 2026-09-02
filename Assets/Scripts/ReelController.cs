@@ -12,8 +12,8 @@ public class ReelController : MonoBehaviour
     public float symbolHeight = 115f; 
 
     [Header("RNG & Buffer Settings")]
-    public int totalSymbolsInStrip = 15; // Set this to 15 in the Inspector
-    public int numberOfTopBuffers = 2;   // Set this to 2 in the Inspector
+    public int totalSymbolsInStrip = 15; 
+    public int numberOfTopBuffers = 2;   
 
     [HideInInspector]
     public int finalSymbolIndex; 
@@ -22,14 +22,13 @@ public class ReelController : MonoBehaviour
     {
         float elapsed = 0f;
         
-        // MODIFICATION: Runs "one time less" by subtracting 1.
+        // Calculates the exact point to teleport back for an infinite loop
         float loopThreshold = symbolHeight * (totalSymbolsInStrip - 1);
 
-        // 1. The Visual Blur (Scrolling)
+        // Phase 1: Scrolling Animation
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
-            
             symbolStrip.anchoredPosition += Vector2.up * spinSpeed * Time.deltaTime;
 
             if (symbolStrip.anchoredPosition.y >= loopThreshold) 
@@ -40,37 +39,32 @@ public class ReelController : MonoBehaviour
             yield return null;
         }
 
-        // 2. The True Random Math Engine
-        // Pick from the normal symbols (15 total - 2 dummy buffers)
+        // Phase 2: RNG & Visual Snap
+        // Picks a random index, ignoring the fake buffer symbols at the top
         int mathResult = UnityEngine.Random.Range(0, totalSymbolsInStrip - numberOfTopBuffers);
         
-        // 3. The Visual Snap
         int targetCenterIndex = mathResult + numberOfTopBuffers;
         int indexForTopOfWindow = targetCenterIndex - 1; 
         
-        // ---> THE MISSING LINE <---
-        // You must save the index so GetWinningSymbolName knows where to look!
         finalSymbolIndex = targetCenterIndex; 
         
+        // Snaps the target symbol perfectly into the window
         float randomSnapY = indexForTopOfWindow * symbolHeight;
         symbolStrip.anchoredPosition = new Vector2(symbolStrip.anchoredPosition.x, randomSnapY);
 
         onComplete?.Invoke();
     }
 
-    // This looks at the exact center symbol and reads its Sprite name
     public string GetWinningSymbolName()
     {
-        // Get the child object sitting at our winning index
         Transform winningChild = symbolStrip.GetChild(finalSymbolIndex);
-        
-        // Read the name of the picture attached to it
         UnityEngine.UI.Image symbolImage = winningChild.GetComponent<UnityEngine.UI.Image>();
         
         if (symbolImage != null && symbolImage.sprite != null)
         {
             return symbolImage.sprite.name; 
         }
-        return "Unknown";
+        
+        return "Unknown"; 
     }
 }
